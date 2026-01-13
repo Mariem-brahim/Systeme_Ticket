@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord Directeur{% endblock %}
+
+{% block extra_css %}
+<style>canvas { max-height: 240px; }</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <div class="page-header d-flex justify-between align-center" style="flex-wrap:wrap;gap:1rem;">
+    <div>
+      <h1>Tableau de bord — Direction</h1>
+      <p>
+        Performances du support technique —
+        <strong>{{ mois_label }}</strong>
+      </p>
+    </div>
+    <div class="d-flex gap-1 align-center" style="flex-wrap:wrap;">
+      <!-- Sélecteur de période -->
+      <form method="GET" action="{{ url_for('directeur.dashboard') }}" style="display:flex;align-items:center;gap:.5rem;">
+        <select name="periode" class="form-control" style="min-width:150px;" onchange="this.form.submit()">
+          <option value="">Toutes périodes</option>
+          {% for p in periodes_dispo %}
+            <option value="{{ p }}" {% if p == periode %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+        {% if periode %}
+          <a href="{{ url_for('directeur.dashboard') }}" class="btn btn-sm btn-outline">✕ Réinitialiser</a>
+        {% endif %}
+      </form>
+      <a href="{{ url_for('directeur.rapport_apercu') }}{% if periode %}?periode={{ periode }}{% endif %}"
+         class="btn btn-outline-voir btn-sm">
+        👁 Aperçu rapport
+      </a>
+      <a href="{{ url_for('directeur.rapport_pdf') }}{% if periode %}?periode={{ periode }}{% endif %}"
+         class="btn btn-gold">
+        ⬇ Télécharger PDF
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats globales -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total tickets</div>
+      <div class="stat-value">{{ total }}</div>
+      <div class="stat-sub">{{ mois_label }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Soumis</div>
+      <div class="stat-value">{{ stats_statut.get('Soumise', 0) }}</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-label">En cours</div>
+      <div class="stat-value">{{ stats_statut.get('En_cours', 0) }}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Clôturés</div>
+      <div class="stat-value">{{ stats_statut.get('Clôturé', 0) }}</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-label">Réouverts</div>
+      <div class="stat-value">{{ stats_statut.get('Réouvert', 0) }}</div>
+    </div>
+    {% if tps_moyen is not none %}
+    <div class="stat-card info">
+      <div class="stat-label">Tps moyen résolution</div>
+      <div class="stat-value" style="font-size:1.5rem;">{{ tps_moyen }}h</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Taux de résolution -->
+  {% set resolus = stats_statut.get('Clôturé', 0) + stats_statut.get('Résolu', 0) %}
+  {% set taux = ((resolus / total * 100) | round(1)) if total > 0 else 0 %}
+  <div class="card mb-2">
+    <div class="card-body" style="padding:.9rem 1.25rem;">
+      <div class="d-flex justify-between align-center mb-1">
+        <span style="font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);font-weight:500;">
+          Taux de résolution
+        </span>
+        <strong style="font-size:1.1rem;color:{% if taux >= 70 %}var(--green){% else %}var(--danger){% endif %};">
+          {{ taux }}%
+        </strong>
+      </div>
+      <div style="background:var(--border);border-radius:4px;height:8px;overflow:hidden;">
+        <div style="width:{{ taux }}%;height:100%;
+                    background:{% if taux >= 70 %}var(--green){% elif taux >= 40 %}var(--warning){% else %}var(--danger){% endif %};
+                    border-radius:4px;transition:width .6s ease;"></div>
+      </div>
+      <div style="font-size:.75rem;color:var(--text-muted);margin-top:.4rem;">
+        {{ resolus }} ticket{{ 's' if resolus > 1 }} clôturé{{ 's' if resolus > 1 }} sur {{ total }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphiques -->
+  <div class="charts-grid">
+    <div class="card">
+      <div class="card-header">Tickets par statut</div>
+      <div class="card-body"><canvas id="chartStatut"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">Tickets par priorité</div>
+      <div class="card-body"><canvas id="chartPriorite"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">Tickets par catégorie</div>
+      <div class="card-body"><canvas id="chartCategorie"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-header">Évolution mensuelle (6 mois)</div>
+      <div class="card-body"><canvas id="chartEvolution"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Top techniciens -->
+  <div class="card mb-2">
+    <div class="card-header">Top 3 techniciens</div>
+    <div class="card-body" style="padding:0;">
+      {% if top_tech %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Rang</th><th>Technicien</th><th>Spécialité</th>
+              <th>Note moyenne</th><th>Évaluations</th><th>Tickets clôturés</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in top_tech %}
+            <tr>
+              <td>
+                {% if loop.index == 1 %}<span style="color:var(--gold);font-weight:700;">🥇</span>
+                {% elif loop.index == 2 %}<span style="color:#aaa;font-weight:700;">🥈</span>
+                {% elif loop.index == 3 %}<span style="color:#c9750a;font-weight:700;">🥉</span>
+                {% else %}<span class="text-muted">{{ loop.index }}</span>{% endif %}
+              </td>
+              <td><strong>{{ t.prenom }} {{ t.nom }}</strong></td>
+              <td><span class="badge badge-navy">{{ t.specialite }}</span></td>
+              <td>
+                {% if t.nb_evaluations > 0 %}
+                  <span style="color:var(--gold);">
+                    {% for i in range(1,6) %}
+                      {{ '★' if i <= t.note_moyenne else '☆' }}
+                    {% endfor %}
+                  </span>
+                  <span style="font-size:.8rem;margin-left:.25rem;">{{ "%.1f"|format(t.note_moyenne) }}/5</span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>{{ t.nb_evaluations }}</td>
+              <td><strong>{{ t.nb_resolus }}</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><p>Aucun technicien enregistré.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 10 derniers tickets -->
+  <div class="card">
+    <div class="card-header">Derniers tickets</div>
+    <div class="card-body" style="padding:0;">
+      {% if recents %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Titre</th><th>Catégorie</th><th>Priorité</th>
+                <th>Statut</th><th>Créé par</th><th>Date</th></tr>
+          </thead>
+          <tbody>
+            {% for t in recents %}
+            <tr>
+              <td class="text-muted">{{ t.id_ticket }}</td>
+              <td>{{ t.titre }}</td>
+              <td>{{ t.categorie }}</td>
+              <td><span class="badge badge-{{ t.priorite|lower }}">{{ t.priorite }}</span></td>
+              <td><span class="badge badge-{{ t.statut|lower|replace('_','')|replace('é','e')|replace('ô','o') }}">{{ t.statut }}</span></td>
+              <td>{{ t.createur }}</td>
+              <td class="text-muted">
+                {{ t.date_creation.strftime('%d/%m/%Y') if t.date_creation else '—' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state"><p>Aucun ticket pour la période sélectionnée.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const NAVY  = '#1a2b4a';
+const GOLD  = '#ecbf43f2';
+const GREEN = '#43cf7bf3';
+const RED   = '#d74141f7';
+const WARN  = '#ef9e34';
+const GREY  = '#aaaaaa';
+const INFO  = '#1a4a7a';
+
+Chart.defaults.font.family = "'IBM Plex Sans', sans-serif";
+Chart.defaults.font.size   = 12;
+Chart.defaults.color       = '#6b6b6b';
+
+const statusColors = { 'Soumise': GOLD, 'En_cours': WARN, 'En_attente': '#e8a82a',
+                        'Résolu': GREEN, 'Clôturé': '#2a5580e0', 'Réouvert': RED };
+
+new Chart(document.getElementById('chartStatut'), {
+  type: 'doughnut',
+  data: {
+    labels: {{ stats_statut.keys()|list|tojson }},
+    datasets: [{
+      data: {{ stats_statut.values()|list|tojson }},
+      backgroundColor: {{ stats_statut.keys()|list|tojson }}.map(k => statusColors[k] || GREY),
+      borderWidth: 0
+    }]
+  },
+  options: {
+    plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 12 } } },
+    cutout: '60%'
+  }
+});
+
+new Chart(document.getElementById('chartPriorite'), {
+  type: 'bar',
+  data: {
+    labels: {{ stats_priorite.keys()|list|tojson }},
+    datasets: [{
+      label: 'Tickets',
+      data: {{ stats_priorite.values()|list|tojson }},
+      backgroundColor: [RED, WARN, GREEN],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+
+new Chart(document.getElementById('chartCategorie'), {
+  type: 'bar',
+  data: {
+    labels: {{ stats_categorie.keys()|list|tojson }},
+    datasets: [{
+      label: 'Tickets',
+      data: {{ stats_categorie.values()|list|tojson }},
+      backgroundColor: NAVY,
+      borderRadius: 4
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    indexAxis: 'y',
+    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+
+new Chart(document.getElementById('chartEvolution'), {
+  type: 'line',
+  data: {
+    labels: {{ evolution|map(attribute='mois')|list|tojson }},
+    datasets: [{
+      label: 'Tickets créés',
+      data: {{ evolution|map(attribute='nb')|list|tojson }},
+      borderColor: NAVY,
+      backgroundColor: 'rgba(26,43,74,.08)',
+      tension: .35, fill: true,
+      pointBackgroundColor: GOLD,
+      pointRadius: 5, pointHoverRadius: 7
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+</script>
+{% endblock %}

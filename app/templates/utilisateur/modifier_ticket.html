@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Modifier le ticket #{{ ticket.id_ticket }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Modifier le ticket #{{ ticket.id_ticket }}</h1>
+    <p>Vous pouvez modifier votre ticket tant qu'il n'a pas été pris en charge.</p>
+  </div>
+
+  <div class="card" style="max-width:680px;">
+    <div class="card-header">Informations du ticket</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('utilisateur.modifier_ticket', tid=ticket.id_ticket) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label for="titre">Titre <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="titre" name="titre" class="form-control"
+                 value="{{ ticket.titre }}" maxlength="255" required>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description <span style="color:var(--danger)">*</span></label>
+          <textarea id="description" name="description" class="form-control"
+                    rows="6" maxlength="2000" required>{{ ticket.description }}</textarea>
+          <span class="char-counter" data-for="description"></span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categorie">Catégorie <span style="color:var(--danger)">*</span></label>
+            <select id="categorie" name="categorie" class="form-control" required>
+              {% for cat in ['Matériel', 'Logiciel', 'Réseau', 'Sécurité', 'Compte/accès'] %}
+                <option value="{{ cat }}" {% if ticket.categorie == cat %}selected{% endif %}>{{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="priorite">Priorité <span style="color:var(--danger)">*</span></label>
+            <select id="priorite" name="priorite" class="form-control" required>
+              {% for prio in ['Haute', 'Moyenne', 'Faible'] %}
+                <option value="{{ prio }}" {% if ticket.priorite == prio %}selected{% endif %}>{{ prio }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+          <a href="{{ url_for('utilisateur.detail_ticket', tid=ticket.id_ticket) }}"
+             class="btn btn-outline">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

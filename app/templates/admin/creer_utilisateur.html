@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block title %}Créer un compte{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Créer un compte utilisateur</h1>
+    <p>Remplissez le formulaire pour enregistrer un nouvel agent dans le système.</p>
+  </div>
+
+  <div class="card" style="max-width:640px;">
+    <div class="card-header">Informations du compte</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.creer_utilisateur') }}">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="prenom">Prénom <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="prenom" name="prenom" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="nom">Nom <span style="color:var(--danger)">*</span></label>
+            <input type="text" id="nom" name="nom" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email professionnel <span style="color:var(--danger)">*</span></label>
+          <input type="email" id="email" name="email" class="form-control"
+                 placeholder="prenom.nom@autorite.mr" required>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="telephone">Téléphone</label>
+            <input type="text" id="telephone" name="telephone" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="role-select">Rôle <span style="color:var(--danger)">*</span></label>
+            <select id="role-select" name="role" class="form-control" required>
+              <option value="" disabled selected>— Sélectionner —</option>
+              <option value="utilisateur">Utilisateur</option>
+              <option value="technicien">Technicien</option>
+              <option value="directeur">Directeur</option>
+              <option value="administrateur">Administrateur</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Spécialité (visible uniquement si technicien) -->
+        <div class="form-group" id="specialite-group" style="display:none;">
+          <label for="specialite">Spécialité <span style="color:var(--danger)">*</span></label>
+          <select id="specialite" name="specialite" class="form-control">
+            <option value="" disabled selected>— Sélectionner —</option>
+            <option value="Réseaux">Réseaux</option>
+            <option value="Sécurité">Sécurité</option>
+            <option value="Système">Système</option>
+            <option value="Support">Support</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="mot_de_passe">Mot de passe <span style="color:var(--danger)">*</span></label>
+          <div class="input-password-wrapper">
+            <input type="password" id="mot_de_passe" name="mot_de_passe" class="form-control"
+                   placeholder="Minimum 6 caractères" required minlength="6">
+            <button type="button" class="btn-toggle-password" aria-label="Afficher">
+              <svg class="icon-eye" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg class="icon-eye-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Créer le compte</button>
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+

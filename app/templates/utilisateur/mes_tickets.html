@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}Mes tickets{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-flex justify-between align-center">
+    <div>
+      <h1>Mes tickets</h1>
+      <p>Historique de toutes vos demandes techniques</p>
+    </div>
+    <a href="{{ url_for('utilisateur.creer_ticket') }}" class="btn btn-primary">+ Nouveau ticket</a>
+  </div>
+
+  <!-- Filtres -->
+  <form method="GET" class="filter-bar">
+    <div class="form-group">
+      <label>Statut</label>
+      <select name="statut" class="form-control" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        {% for s in ['Soumise','En_cours','En_attente','Résolu','Réouvert','Clôturé'] %}
+          <option value="{{ s }}" {% if filtre_statut == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Priorité</label>
+      <select name="priorite" class="form-control" onchange="this.form.submit()">
+        <option value="">Toutes</option>
+        {% for p in ['Haute','Moyenne','Faible'] %}
+          <option value="{{ p }}" {% if filtre_priorite == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Catégorie</label>
+      <select name="categorie" class="form-control" onchange="this.form.submit()">
+        <option value="">Toutes</option>
+        {% for c in ['Matériel','Logiciel','Réseau','Sécurité','Compte/accès'] %}
+          <option value="{{ c }}" {% if filtre_categorie == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if filtre_statut or filtre_priorite or filtre_categorie %}
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <a href="{{ url_for('utilisateur.mes_tickets') }}" class="btn btn-outline">Réinitialiser</a>
+      </div>
+    {% endif %}
+  </form>
+
+  <div class="card">
+    <div class="card-body" style="padding:0;">
+      {% if tickets %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Titre</th>
+              <th>Catégorie</th>
+              <th>Priorité</th>
+              <th>Statut</th>
+              <th>Technicien</th>
+              <th>Créé le</th>
+              <th>Résolu le</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tickets %}
+            <tr>
+              <td class="text-muted">{{ t.id_ticket }}</td>
+              <td><strong>{{ t.titre }}</strong></td>
+              <td>{{ t.categorie }}</td>
+              <td><span class="badge badge-{{ t.priorite|lower }}">{{ t.priorite }}</span></td>
+              <td>
+                {% set s = t.statut|replace('_',' ')|lower|replace(' ','_') %}
+                <span class="badge badge-{{ t.statut|lower|replace('_','') }}">{{ t.statut }}</span>
+              </td>
+              <td>{{ t.technicien_nom or '—' }}</td>
+              <td class="text-muted" style="font-size:.78rem;">
+                {{ t.date_creation.strftime('%d/%m/%Y') if t.date_creation else '—' }}
+              </td>
+              <td class="text-muted" style="font-size:.78rem;">
+                {{ t.date_resolution.strftime('%d/%m/%Y') if t.date_resolution else '—' }}
+              </td>
+              <td>
+                <a href="{{ url_for('utilisateur.detail_ticket', tid=t.id_ticket) }}"
+                   class="btn btn-sm btn-outline-voir">Voir</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <p>Aucun ticket ne correspond aux critères sélectionnés.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

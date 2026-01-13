@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>Vérification — Autorité de Régulation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+<div class="auth-wrapper">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo AR">
+      <h2>Vérification de l'identité</h2>
+      <p>Saisissez le code à 6 chiffres reçu par email.</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="auth-divider"></div>
+
+    <form method="POST" action="{{ url_for('auth.verify_otp') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-group">
+        <label for="code">Code de vérification</label>
+        <input type="text" id="code" name="code" class="form-control"
+               placeholder="000000" maxlength="6" pattern="\d{6}"
+               style="font-size:1.5rem;letter-spacing:.4em;text-align:center;"
+               required autofocus autocomplete="off">
+      </div>
+      <button type="submit" class="btn btn-primary-login">Valider</button>
+    </form>
+
+    <div class="text-center mt-2">
+      <a href="{{ url_for('auth.login') }}" class="btn-link">← Retour à la connexion</a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Mes tickets{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Mes tickets</h1>
+    <p>Tous les tickets qui vous ont été assignés</p>
+  </div>
+
+  <form method="GET" class="filter-bar">
+    <div class="form-group">
+      <label>Statut</label>
+      <select name="statut" class="form-control" onchange="this.form.submit()">
+        <option value="">Tous</option>
+        {% for s in ['En_cours','Résolu','Clôturé','En_attente'] %}
+          <option value="{{ s }}" {% if filtre_statut == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if filtre_statut %}
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <a href="{{ url_for('technicien.mes_tickets') }}" class="btn btn-outline">Réinitialiser</a>
+      </div>
+    {% endif %}
+  </form>
+
+  <div class="card">
+    <div class="card-body" style="padding:0;">
+      {% if tickets %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>#</th><th>Titre</th><th>Catégorie</th><th>Priorité</th>
+                <th>Statut</th><th>Demandeur</th><th>Date</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for t in tickets %}
+            <tr>
+              <td class="text-muted">{{ t.id_ticket }}</td>
+              <td><strong>{{ t.titre }}</strong></td>
+              <td>{{ t.categorie }}</td>
+              <td><span class="badge badge-{{ t.priorite|lower }}">{{ t.priorite }}</span></td>
+              <td><span class="badge badge-{{ t.statut|lower|replace('_','') }}">{{ t.statut }}</span></td>
+              <td>{{ t.utilisateur_nom }}</td>
+              <td class="text-muted" style="font-size:.78rem;">
+                {{ t.date_creation.strftime('%d/%m/%Y') if t.date_creation else '—' }}
+              </td>
+              <td><a href="{{ url_for('technicien.detail_ticket', tid=t.id_ticket) }}"
+                     class="btn btn-sm btn-outline-voir">Voir</a></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>Aucun ticket correspondant aux critères sélectionnés.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

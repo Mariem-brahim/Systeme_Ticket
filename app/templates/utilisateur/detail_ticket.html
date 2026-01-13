@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+{% block title %}Ticket #{{ ticket.id_ticket }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="d-flex justify-between align-center">
+      <div>
+        <h1>Ticket #{{ ticket.id_ticket }}</h1>
+        <p>{{ ticket.titre }}</p>
+      </div>
+      <a href="{{ url_for('utilisateur.mes_tickets') }}" class="btn btn-outline btn-sm">← Retour</a>
+    </div>
+  </div>
+
+  <!-- BARRE DE PROGRESSION — 3 scénarios -->
+  <div class="ticket-progress">
+    {% for s in progress_steps %}
+      {% set i = loop.index0 %}
+      {% set step_class = ('error' if s == 'Réouvert' else 'done') if i < progress_current_idx else ('cloture' if s == 'Clôturé' else ('error' if s == 'Réouvert' else 'active')) if i == progress_current_idx else '' %}
+      <div class="progress-step {{ step_class }}">
+        <div class="step-circle">
+          {% if step_class == 'done' %}✓
+          {% elif step_class == 'cloture' %}✓
+          {% elif step_class == 'error' %}↺
+          {% elif step_class == '' %}○
+          {% else %}●{% endif %}
+        </div>
+        <div class="step-label">{{ s|replace('En_cours','En cours')|replace('En_attente','En attente') }}</div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- BANNIÈRE TICKET CLÔTURÉ -->
+  {% if ticket.statut == 'Clôturé' %}
+  <div class="ticket-closed-banner">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    Ce ticket est clôturé
+    {% if ticket.date_resolution %}
+      — résolu le {{ ticket.date_resolution.strftime('%d/%m/%Y') }}
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ACTIONS (modifier / supprimer) si ticket Soumise et non affecté -->
+  {% if can_edit %}
+  <div class="d-flex gap-2 mb-2">
+    <a href="{{ url_for('utilisateur.modifier_ticket', tid=ticket.id_ticket) }}"
+       class="btn btn-outline-modi btn-sm">Modifier</a>
+    <form method="POST" action="{{ url_for('utilisateur.supprimer_ticket', tid=ticket.id_ticket) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger btn-sm"
+              data-confirm="Supprimer définitivement ce ticket ?">Supprimer</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <div class="detail-grid">
+    <div>
+      <!-- Description -->
+      <div class="card mb-2">
+        <div class="card-header">Description</div>
+        <div class="card-body">
+          <p style="white-space:pre-line;line-height:1.7;">{{ ticket.description }}</p>
+        </div>
+      </div>
+
+      <!-- Validation si Résolu -->
+      {% if ticket.statut == 'Résolu' and not evaluation %}
+      <div class="card mb-2" style="border-color:var(--gold);">
+        <div class="card-header" style="background:var(--gold);color:var(--navy-dark);">
+          Validation de la résolution
+        </div>
+        <div class="card-body">
+          <p class="mb-2">Le technicien a marqué ce ticket comme résolu. Confirmez-vous ?</p>
+          <div class="d-flex gap-2">
+            <form method="POST" action="{{ url_for('utilisateur.valider_resolution', tid=ticket.id_ticket) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button name="action" value="valider" type="submit" class="btn btn-success">✓ Confirmer</button>
+            </form>
+            <form method="POST" action="{{ url_for('utilisateur.valider_resolution', tid=ticket.id_ticket) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button name="action" value="refuser" type="submit" class="btn btn-danger"
+                      data-confirm="Refuser la résolution et réouvrir ce ticket ?">✗ Refuser</button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Commentaires -->
+      <div class="card mb-2">
+        <div class="card-header">Commentaires du technicien</div>
+        <div class="card-body" id="comments-body">
+          {% if commentaires %}
+            {% for c in commentaires %}
+            <div style="padding:.65rem 0;border-bottom:1px solid var(--border);">
+              <div class="d-flex justify-between align-center mb-1">
+                <strong style="font-size:.85rem;">{{ c.auteur }}</strong>
+                <span class="text-muted" style="font-size:.75rem;">
+                  {{ c.date_creation.strftime('%d/%m/%Y %H:%M') if c.date_creation else '' }}
+                </span>
+              </div>
+              <p style="font-size:.88rem;white-space:pre-line;">{{ c.texte }}</p>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted" style="font-size:.88rem;">Aucun commentaire pour le moment.</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Évaluation -->
+      {% if evaluation %}
+      <div class="card mb-2">
+        <div class="card-header">Votre évaluation</div>
+        <div class="card-body">
+          <div class="star-rating mb-1">
+            {% for i in range(1,6) %}
+              <span class="star {% if i <= evaluation.note %}filled{% endif %}">★</span>
+            {% endfor %}
+          </div>
+          {% if evaluation.feedback %}
+            <p style="font-size:.88rem;white-space:pre-line;">{{ evaluation.feedback }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% elif ticket.statut == 'Clôturé' %}
+      <div class="card mb-2">
+        <div class="card-header">Évaluation</div>
+        <div class="card-body">
+          <a href="{{ url_for('utilisateur.evaluer_ticket', tid=ticket.id_ticket) }}" class="btn btn-gold">
+            Évaluer l'intervention
+          </a>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Méta -->
+    <div>
+      <div class="card">
+        <div class="card-header">Informations</div>
+        <div class="card-body" style="padding:.75rem 1rem;">
+          <ul class="meta-list">
+            <li>
+              <span class="meta-key">Statut</span>
+              <span class="badge badge-{{ ticket.statut|lower|replace('_','') }}">{{ ticket.statut }}</span>
+            </li>
+            <li><span class="meta-key">Priorité</span>
+                <span class="badge badge-{{ ticket.priorite|lower }}">{{ ticket.priorite }}</span></li>
+            <li><span class="meta-key">Catégorie</span><span>{{ ticket.categorie }}</span></li>
+            <li><span class="meta-key">Technicien</span><span>{{ ticket.technicien_nom or '—' }}</span></li>
+            <li><span class="meta-key">Créé le</span>
+                <span>{{ ticket.date_creation.strftime('%d/%m/%Y') if ticket.date_creation else '—' }}</span></li>
+            <li><span class="meta-key">Résolu le</span>
+                <span>{{ ticket.date_resolution.strftime('%d/%m/%Y') if ticket.date_resolution else '—' }}</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Notifications</h1>
+    <p>Alertes et événements du système de tickets</p>
+  </div>
+  <div class="card">
+    <div class="card-header">Historique des notifications</div>
+    <div class="card-body" style="padding:0;">
+      {% if notifs %}
+      <ul class="notif-list">
+        {% for n in notifs %}
+        <li class="notif-item {% if not n.lu %}unread{% endif %}">
+          <div style="flex:1;">
+            <div class="notif-msg">{{ n.message }}</div>
+            <div class="notif-time">{{ n.created_at.strftime('%d/%m/%Y à %H:%M') if n.created_at else '' }}</div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🔔</div>
+        <p>Aucune notification pour le moment.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

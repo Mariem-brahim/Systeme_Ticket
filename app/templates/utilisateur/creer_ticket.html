@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau ticket{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Créer un ticket</h1>
+    <p>Signalez un problème technique en remplissant le formulaire ci-dessous.</p>
+  </div>
+
+  <div class="card" style="max-width:680px;">
+    <div class="card-header">Déclaration d'incident</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('utilisateur.creer_ticket') }}">
+        <div class="form-group">
+          <label for="titre">Titre <span style="color:var(--danger)">*</span></label>
+          <input type="text" id="titre" name="titre" class="form-control"
+                 placeholder="Résumé bref du problème" required maxlength="255" autofocus>
+          <span class="form-hint">255 caractères max.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="description">Description <span style="color:var(--danger)">*</span></label>
+          <textarea id="description" name="description" class="form-control"
+                    placeholder="Décrivez le problème en détail : symptômes, messages d'erreur, matériel concerné…"
+                    rows="6" required maxlength="2000"></textarea>
+          <span class="form-hint char-counter" data-for="description">2000 caractères max.</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="categorie">Catégorie <span style="color:var(--danger)">*</span></label>
+            <select id="categorie" name="categorie" class="form-control" required>
+              <option value="" disabled selected>— Sélectionner —</option>
+              <option value="Matériel">Matériel</option>
+              <option value="Logiciel">Logiciel</option>
+              <option value="Réseau">Réseau</option>
+              <option value="Sécurité">Sécurité</option>
+              <option value="Compte/accès">Compte/accès</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="priorite">Priorité <span style="color:var(--danger)">*</span></label>
+            <select id="priorite" name="priorite" class="form-control" required>
+              <option value="" disabled selected>— Sélectionner —</option>
+              <option value="Haute">Haute</option>
+              <option value="Moyenne" selected>Moyenne</option>
+              <option value="Faible">Faible</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">Soumettre le ticket</button>
+          <a href="{{ url_for('utilisateur.dashboard') }}" class="btn btn-outline">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

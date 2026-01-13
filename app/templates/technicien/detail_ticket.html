@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+{% block title %}Ticket #{{ ticket.id_ticket }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <div class="d-flex justify-between align-center">
+      <div>
+        <h1>Ticket #{{ ticket.id_ticket }}</h1>
+        <p>{{ ticket.titre }}</p>
+      </div>
+      <a href="{{ url_for('technicien.tickets_disponibles') }}" class="btn btn-outline btn-sm">← Retour</a>
+    </div>
+  </div>
+
+  <div class="detail-grid">
+    <!-- Colonne principale -->
+    <div>
+
+      <!-- ── PROPOSITION AUTOMATIQUE en attente ── -->
+      {% if proposition %}
+      <div class="proposition-card mb-2">
+        <div class="prop-header">
+          <div>
+            <strong>Ce ticket vous a été proposé automatiquement</strong>
+            <div style="font-size:.8rem;color:rgba(255,255,255,.65);margin-top:.15rem;">
+              Votre spécialité correspond à la catégorie de ce ticket.
+            </div>
+          </div>
+          <span class="prop-badge">En attente de réponse</span>
+        </div>
+        <div class="prop-body">
+          <p style="font-size:.875rem;color:var(--text-muted);">
+            Acceptez pour prendre en charge immédiatement, ou refusez pour le laisser à un autre technicien.
+          </p>
+          <div class="prop-actions">
+            <form method="POST" action="{{ url_for('technicien.accepter_proposition', tid=ticket.id_ticket) }}">
+              <button type="submit" class="btn btn-success"
+                      data-confirm="Accepter et prendre en charge ce ticket ?">
+                ✓ Accepter
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('technicien.refuser_proposition', tid=ticket.id_ticket) }}">
+              <button type="submit" class="btn btn-outline"
+                      data-confirm="Refuser ce ticket ? Il sera proposé à un autre technicien.">
+                ✗ Refuser
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Description -->
+      <div class="card mb-2">
+        <div class="card-header">Description</div>
+        <div class="card-body">
+          <p style="white-space:pre-line;line-height:1.75;">{{ ticket.description }}</p>
+        </div>
+      </div>
+
+      <!-- Actions disponibles selon statut -->
+      {% if ticket.statut in ['Soumise','En_attente','Réouvert'] and ticket.assigne_a is none and not proposition %}
+      <div class="card mb-2" style="border-color:var(--green);">
+        <div class="card-header card-header-green">Prendre en charge</div>
+        <div class="card-body">
+          <p class="mb-2" style="font-size:.9rem;">
+            Ce ticket est disponible. Vous pouvez vous en charger manuellement.
+          </p>
+          <form method="POST" action="{{ url_for('technicien.assigner_ticket', tid=ticket.id_ticket) }}">
+            <button type="submit" class="btn btn-success"
+                    data-confirm="Confirmer la prise en charge de ce ticket ?">
+              ✓ Prendre en charge
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {% elif ticket.assigne_a == session.get('user_id') and ticket.statut in ['En_cours', 'En_attente'] %}
+      <div class="card mb-2">
+        <div class="card-header">Actions</div>
+        <div class="card-body">
+          <div class="d-flex gap-2" style="flex-wrap:wrap;margin-bottom:1rem;">
+            <form method="POST" action="{{ url_for('technicien.resoudre_ticket', tid=ticket.id_ticket) }}">
+              <button type="submit" class="btn btn-success"
+                      data-confirm="Marquer ce ticket comme résolu ? L'utilisateur devra valider.">
+                ✓ Marquer résolu
+              </button>
+            </form>
+            <form method="POST" action="{{ url_for('technicien.abandonner_ticket', tid=ticket.id_ticket) }}">
+              <button type="submit" class="btn btn-danger"
+                      data-confirm="Vous désaffecter de ce ticket ? Il sera disponible pour d'autres techniciens.">
+                ✗ Se désaffecter
+              </button>
+            </form>
+          </div>
+
+          <div class="divider"></div>
+          <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:.75rem;text-transform:uppercase;letter-spacing:.04em;">Reclassification</p>
+          <form method="POST" action="{{ url_for('technicien.modifier_statut', tid=ticket.id_ticket) }}"
+                style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;">
+            <input type="hidden" name="statut" value="">
+            <div class="form-group" style="margin:0;">
+              <label>Reclasser la catégorie</label>
+              <select name="categorie" class="form-control">
+                <option value="">— Inchangée —</option>
+                {% for c in ['Matériel','Logiciel','Réseau','Sécurité','Compte/accès'] %}
+                  <option value="{{ c }}" {% if ticket.categorie == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+              <label>&nbsp;</label>
+              <button type="submit" class="btn btn-outline-Rec btn-sm">Reclasser</button>
+            </div>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Commentaires -->
+      <div class="card mb-2">
+        <div class="card-header">Commentaires</div>
+        <div class="card-body">
+          {% if commentaires %}
+            {% for c in commentaires %}
+            <div style="padding:.7rem 0;border-bottom:1px solid var(--border-light);">
+              <div class="d-flex justify-between align-center mb-1">
+                <strong style="font-size:.85rem;">{{ c.auteur }}</strong>
+                <span class="text-muted" style="font-size:.73rem;">
+                  {{ c.date_creation.strftime('%d/%m/%Y à %H:%M') if c.date_creation else '' }}
+                </span>
+              </div>
+              <p style="font-size:.875rem;white-space:pre-line;line-height:1.6;">{{ c.texte }}</p>
+            </div>
+            {% endfor %}
+          {% else %}
+            <p class="text-muted" style="font-size:.875rem;">Aucun commentaire pour le moment.</p>
+          {% endif %}
+
+          {% if ticket.assigne_a == session.get('user_id') %}
+          <div class="divider"></div>
+          <form method="POST" action="{{ url_for('technicien.commenter', tid=ticket.id_ticket) }}">
+            <div class="form-group">
+              <label>Ajouter un commentaire</label>
+              <textarea name="texte" class="form-control" rows="3" maxlength="2000"
+                        placeholder="Décrivez les actions effectuées, les informations importantes…" required></textarea>
+              <span class="form-hint">Visible par le demandeur.</span>
+            </div>
+            <button type="submit" class="btn btn-primary-comm btn-sm">Publier le commentaire</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Méta-données -->
+    <div>
+      <div class="card" style="position:sticky;top:80px;">
+        <div class="card-header">Informations</div>
+        <div class="card-body" style="padding:.85rem 1.1rem;">
+          <ul class="meta-list">
+            <li>
+              <span class="meta-key">Statut</span>
+              <span class="badge badge-{{ ticket.statut|lower|replace('_','') }}">{{ ticket.statut }}</span>
+            </li>
+            <li>
+              <span class="meta-key">Priorité</span>
+              <span class="badge badge-{{ ticket.priorite|lower }}">{{ ticket.priorite }}</span>
+            </li>
+            <li><span class="meta-key">Catégorie</span><span>{{ ticket.categorie }}</span></li>
+            <li><span class="meta-key">Demandeur</span><span style="font-size:.83rem;">{{ ticket.utilisateur_nom }}</span></li>
+            <li>
+              <span class="meta-key">Créé le</span>
+              <span style="font-size:.83rem;">
+                {{ ticket.date_creation.strftime('%d/%m/%Y') if ticket.date_creation else '—' }}
+              </span>
+            </li>
+            <li>
+              <span class="meta-key">Résolu le</span>
+              <span style="font-size:.83rem;">
+                {{ ticket.date_resolution.strftime('%d/%m/%Y') if ticket.date_resolution else '—' }}
+              </span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

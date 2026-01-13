@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Tableau de bord</h1>
+    <p>Bonjour {{ session.get('user_nom') }} — aperçu de vos demandes techniques</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total</div>
+      <div class="stat-value">{{ tickets|length }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Soumises</div>
+      <div class="stat-value">{{ stats.get('Soumise', 0) }}</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="stat-label">En cours</div>
+      <div class="stat-value">{{ stats.get('En_cours', 0) }}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Résolus</div>
+      <div class="stat-value">{{ stats.get('Résolu', 0) + stats.get('Clôturé', 0) }}</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-label">Réouverts</div>
+      <div class="stat-value">{{ stats.get('Réouvert', 0) }}</div>
+    </div>
+  </div>
+
+  <!-- Actions rapides -->
+  <div class="d-flex gap-2 mb-2">
+    <a href="{{ url_for('utilisateur.creer_ticket') }}" class="btn btn-primary">+ Nouveau ticket</a>
+    <a href="{{ url_for('utilisateur.mes_tickets') }}" class="btn btn-outline-mesticket">Tous mes tickets</a>
+  </div>
+
+  <!-- Tickets récents -->
+  <div class="card">
+    <div class="card-header">Tickets récents</div>
+    <div class="card-body" style="padding:0;">
+      {% if tickets %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Titre</th>
+              <th>Catégorie</th>
+              <th>Priorité</th>
+              <th>Statut</th>
+              <th>Technicien</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tickets[:10] %}
+            <tr>
+              <td class="text-muted">{{ t.id_ticket }}</td>
+              <td><strong>{{ t.titre }}</strong></td>
+              <td>{{ t.categorie }}</td>
+              <td>
+                <span class="badge badge-{{ t.priorite|lower }}">{{ t.priorite }}</span>
+              </td>
+              <td>
+                {% set s = t.statut|replace(' ','_')|lower %}
+                <span class="badge badge-{{ s }}">{{ t.statut }}</span>
+              </td>
+              <td>{{ t.technicien_nom or '—' }}</td>
+              <td class="text-muted" style="font-size:.78rem;">
+                {{ t.date_creation.strftime('%d/%m/%Y') if t.date_creation else '—' }}
+              </td>
+              <td>
+                <a href="{{ url_for('utilisateur.detail_ticket', tid=t.id_ticket) }}"
+                   class="btn btn-sm btn-outline-voir">Voir</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <p>Aucun ticket pour le moment.</p>
+        <a href="{{ url_for('utilisateur.creer_ticket') }}" class="btn btn-primary mt-2">Créer mon premier ticket</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

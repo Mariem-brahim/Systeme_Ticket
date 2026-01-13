@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+{% block title %}Évaluation — Ticket #{{ ticket.id_ticket }}{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1>Évaluer l'intervention</h1>
+    <p>Ticket #{{ ticket.id_ticket }} — {{ ticket.titre }}</p>
+  </div>
+
+  <div class="card" style="max-width:520px;">
+    <div class="card-header">Votre évaluation</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('utilisateur.evaluer_ticket', tid=ticket.id_ticket) }}">
+
+        <div class="form-group">
+          <label>Note globale <span style="color:var(--danger)">*</span></label>
+          <input type="hidden" id="note-input" name="note" value="0" required>
+          <div class="star-rating" id="stars" style="font-size:2.25rem;cursor:pointer;letter-spacing:.15em;">
+            {% for i in range(1,6) %}
+              <span class="star" data-val="{{ i }}" title="{{ i }} étoile{{ 's' if i > 1 }}">★</span>
+            {% endfor %}
+          </div>
+          <small class="text-muted" id="star-label" style="display:block;margin-top:.35rem;">
+            Cliquez pour noter de 1 à 5 étoiles
+          </small>
+        </div>
+
+        <div class="form-group mt-2">
+          <label for="feedback">Commentaire <span class="text-muted" style="font-weight:400;">(facultatif)</span></label>
+          <textarea id="feedback" name="feedback" class="form-control" rows="4"
+                    placeholder="Décrivez la qualité de l'intervention, les points positifs ou à améliorer…"
+                    maxlength="1000"></textarea>
+          <span class="form-hint char-counter" data-for="feedback">1000 caractères max.</span>
+        </div>
+
+        <div class="divider"></div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-gold" id="submit-btn" disabled>
+            Soumettre l'évaluation
+          </button>
+          <a href="{{ url_for('utilisateur.detail_ticket', tid=ticket.id_ticket) }}"
+             class="btn btn-outline">Annuler</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const LABELS = ['','Très insatisfait','Insatisfait','Acceptable','Satisfait','Très satisfait'];
+const stars  = document.querySelectorAll('#stars .star');
+const input  = document.getElementById('note-input');
+const label  = document.getElementById('star-label');
+const btn    = document.getElementById('submit-btn');
+
+function setRating(val) {
+  input.value = val;
+  stars.forEach(s => {
+    s.style.color = parseInt(s.dataset.val) <= val ? 'var(--gold)' : 'var(--border)';
+  });
+  label.textContent = val > 0 ? LABELS[val] : 'Cliquez pour noter de 1 à 5 étoiles';
+  btn.disabled = val === 0;
+}
+
+stars.forEach(s => {
+  s.addEventListener('click', () => setRating(parseInt(s.dataset.val)));
+  s.addEventListener('mouseenter', () => {
+    const v = parseInt(s.dataset.val);
+    stars.forEach(x => {
+      x.style.color = parseInt(x.dataset.val) <= v ? 'var(--gold)' : 'var(--border)';
+    });
+  });
+});
+document.getElementById('stars').addEventListener('mouseleave', () => setRating(parseInt(input.value)));
+setRating(0);
+</script>
+{% endblock %}

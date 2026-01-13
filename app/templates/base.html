@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Suivi des Tickets{% endblock %} — Autorité de Régulation</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar">
+  <a class="navbar-brand" href="{% if session.get('role') == 'utilisateur' %}{{ url_for('utilisateur.dashboard') }}{% elif session.get('role') == 'technicien' %}{{ url_for('technicien.dashboard') }}{% elif session.get('role') == 'directeur' %}{{ url_for('directeur.dashboard') }}{% elif session.get('role') == 'administrateur' %}{{ url_for('admin.dashboard') }}{% else %}{{ url_for('auth.login') }}{% endif %}">
+    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo AR">
+    <span>Autorité de Régulation<small>Système de suivi des tickets</small></span>
+  </a>
+
+  {% if session.get('user_id') %}
+  <!-- Bouton hamburger — visible uniquement sur mobile -->
+  <button class="navbar-toggle" id="navbar-toggle"
+          aria-label="Menu" aria-expanded="false" aria-controls="navbar-nav">
+    <span></span><span></span><span></span>
+  </button>
+
+  <ul class="navbar-nav" id="navbar-nav">
+    {% if session.get('role') == 'utilisateur' %}
+      <li><a href="{{ url_for('utilisateur.dashboard') }}"    class="nav-link">Tableau de bord</a></li>
+      <li><a href="{{ url_for('utilisateur.creer_ticket') }}" class="nav-link">Nouveau ticket</a></li>
+      <li><a href="{{ url_for('utilisateur.mes_tickets') }}"  class="nav-link">Mes tickets</a></li>
+      <li><a href="{{ url_for('utilisateur.profil') }}"       class="nav-link">Profil</a></li>
+    {% elif session.get('role') == 'technicien' %}
+      <li><a href="{{ url_for('technicien.dashboard') }}"            class="nav-link">Tableau de bord</a></li>
+      <li><a href="{{ url_for('technicien.tickets_disponibles') }}"  class="nav-link">Tickets disponibles</a></li>
+      <li><a href="{{ url_for('technicien.mes_tickets') }}"          class="nav-link">Mes tickets</a></li>
+      <li><a href="{{ url_for('technicien.profil') }}"               class="nav-link">Profil</a></li>
+    {% elif session.get('role') == 'directeur' %}
+      <li><a href="{{ url_for('directeur.dashboard') }}" class="nav-link">Tableau de bord</a></li>
+      <li><a href="{{ url_for('directeur.profil') }}"    class="nav-link">Profil</a></li>
+    {% elif session.get('role') == 'administrateur' %}
+      <li><a href="{{ url_for('admin.dashboard') }}"          class="nav-link">Utilisateurs</a></li>
+      <li><a href="{{ url_for('admin.creer_utilisateur') }}"  class="nav-link">Créer un compte</a></li>
+    {% endif %}
+
+    {% if session.get('role') in ['utilisateur', 'technicien', 'directeur'] %}
+    <li class="sep"></li>
+    <li>
+      {% set notif_url = session.get('role') + '.notifications' %}
+      <a href="{{ url_for(notif_url) }}" class="notif-bell" id="notif-link" title="Notifications">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span class="notif-badge" id="notif-count"
+              style="display:{% if nb_notifs|default(0) > 0 %}flex{% else %}none{% endif %};">
+          {{ nb_notifs|default(0) }}
+        </span>
+      </a>
+    </li>
+    {% endif %}
+
+    <li class="sep"></li>
+    <li><span class="navbar-user">{{ session.get('user_nom', '') }}</span></li>
+    <li>
+      <a href="{{ url_for('auth.logout') }}" class="nav-link nav-logout"
+         data-confirm="Confirmer la déconnexion ?">Déconnexion</a>
+    </li>
+  </ul>
+  {% endif %}
+</nav>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }}" data-auto-dismiss>{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+{% block content %}{% endblock %}
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+
+{% if session.get('role') in ['utilisateur', 'technicien', 'directeur'] %}
+<script>
+(function () {
+  const role = '{{ session.get("role") }}';
+  function refreshNotifCount() {
+    fetch('/' + role + '/notifications/count')
+      .then(r => r.json())
+      .then(data => {
+        const badge = document.getElementById('notif-count');
+        if (badge) {
+          badge.textContent = data.count;
+          badge.style.display = data.count > 0 ? 'flex' : 'none';
+        }
+      }).catch(() => {});
+  }
+  setInterval(refreshNotifCount, 30000);
+})();
+</script>
+{% endif %}
+</body>
+</html>

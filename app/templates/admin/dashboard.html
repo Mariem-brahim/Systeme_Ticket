@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %}Administration{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-flex justify-between align-center" style="flex-wrap:wrap;gap:1rem;">
+    <div>
+      <h1>Administration des comptes</h1>
+      <p>Gestion des agents et techniciens du système</p>
+    </div>
+    <a href="{{ url_for('admin.creer_utilisateur') }}" class="btn btn-primary">+ Créer un compte</a>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Utilisateurs</div>
+      <div class="stat-value">{{ nb_util }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">Techniciens</div>
+      <div class="stat-value">{{ nb_tech }}</div>
+    </div>
+    <div class="stat-card info">
+      <div class="stat-label">Directeurs</div>
+      <div class="stat-value">{{ nb_dir }}</div>
+    </div>
+    <div class="stat-card navy">
+      <div class="stat-label">Total tickets</div>
+      <div class="stat-value">{{ nb_tickets }}</div>
+    </div>
+  </div>
+
+  <!-- Filtre rôle -->
+  <form method="GET" class="filter-bar" style="margin-bottom:1rem;">
+    <div class="form-group">
+      <label>Filtrer par rôle</label>
+      <select name="role" class="form-control" onchange="this.form.submit()">
+        <option value="">Tous les rôles</option>
+        {% for r in ['utilisateur','technicien','directeur','administrateur'] %}
+          <option value="{{ r }}" {% if filtre_role == r %}selected{% endif %}>
+            {{ r|capitalize }}
+          </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if filtre_role %}
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline">✕ Réinitialiser</a>
+      </div>
+    {% endif %}
+  </form>
+
+  <div class="card">
+    <div class="card-header">
+      Liste des comptes
+      <span class="text-muted" style="font-size:.8rem;font-weight:400;">
+        {{ users|length }} compte{{ 's' if users|length != 1 }}
+      </span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      {% if users %}
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Rôle</th>
+              <th>Spécialité</th>
+              <th>Note moy.</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td class="text-muted">{{ u.id_utilisateur }}</td>
+              <td><strong>{{ u.prenom }} {{ u.nom }}</strong></td>
+              <td style="font-size:.82rem;">{{ u.email }}</td>
+              <td>
+                {% if u.role == 'administrateur' %}
+                  <span class="badge" style="color:var(--navy-dark);">Admin</span>
+                {% elif u.role == 'directeur' %}
+                  <span class="badge" style="color:var(--navy-dark);">Directeur</span>
+                {% elif u.role == 'technicien' %}
+                  <span class="badge" style="color:var(--navy-dark);">Technicien</span>
+                {% elif u.role == 'utilisateur' %}
+                  <span class="badge" style="color:var(--navy-dark);">Utilisateur</span>
+                {% endif %}
+              </td>
+              <td>{{ u.specialite or '—' }}</td>
+              <td>
+                {% if u.role == 'technicien' and u.note_moyenne is defined and u.note_moyenne %}
+                  <span style="color:var(--gold);font-size:.85rem;">
+                    {{ "%.1f"|format(u.note_moyenne) }} ★
+                  </span>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.actif %}
+                  <span class="badge" style="color:#145a23;">Actif</span>
+                {% else %}
+                  <span class="badge" style="color:#8b1a1a;">Inactif</span>
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('admin.modifier_utilisateur', uid=u.id_utilisateur) }}"
+                     class="btn btn-sm btn-outline-modi">Modifier</a>
+                  {% if u.id_utilisateur != session.get('user_id') %}
+                  <form method="POST"
+                        action="{{ url_for('admin.supprimer_utilisateur', uid=u.id_utilisateur) }}">
+                    <button type="submit" class="btn btn-sm btn-danger"
+                            data-confirm="Supprimer {{ u.prenom }} {{ u.nom }} ? Cette action est irréversible.">
+                      Supprimer
+                    </button>
+                  </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <p>Aucun utilisateur{% if filtre_role %} avec le rôle « {{ filtre_role }} »{% endif %}.</p>
+        {% if filtre_role %}
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-outline mt-2">Voir tous les comptes</a>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

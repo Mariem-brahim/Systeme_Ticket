@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord Technicien{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header d-flex justify-between align-center">
+    <div>
+      <h1>Tableau de bord</h1>
+      <p>{{ session.get('user_nom') }} — Spécialité : <strong>{{ specialite or '—' }}</strong></p>
+    </div>
+  </div>
+
+  <!-- Statistiques -->
+  <div class="stats-grid">
+    <div class="stat-card warning">
+      <div class="stat-label">En cours</div>
+      <div class="stat-value">{{ stats.get('En_cours', 0) }}</div>
+    </div>
+    <div class="stat-card gold">
+      <div class="stat-label">En attente</div>
+      <div class="stat-value">{{ stats.get('En_attente', 0) }}</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-label">Clôturés</div>
+      <div class="stat-value">{{ stats.get('Résolu', 0) + stats.get('Clôturé', 0) }}</div>
+    </div>
+    <div class="stat-card{% if propositions %} danger{% endif %}">
+      <div class="stat-label">Propositions</div>
+      <div class="stat-value">{{ propositions|length }}</div>
+      {% if propositions %}<div class="stat-sub">En attente de réponse</div>{% endif %}
+    </div>
+    <div class="stat-card info">
+      <div class="stat-label">Note moyenne</div>
+      <div class="stat-value">
+        {% if perf and perf.nb_evaluations > 0 %}
+          {{ "%.1f"|format(perf.note_moyenne) }}<span style="font-size:1rem;color:var(--gold);"> ★</span>
+        {% else %}—{% endif %}
+      </div>
+      {% if perf and perf.nb_evaluations > 0 %}
+        <div class="stat-sub">{{ perf.nb_evaluations }} évaluation{{ 's' if perf.nb_evaluations > 1 }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ═══ PROPOSITIONS AUTOMATIQUES ═══ -->
+  {% if propositions %}
+  <div class="mb-3">
+    <div style="margin-bottom:.75rem;">
+      <h2 style="font-size:1.1rem;display:flex;align-items:center;gap:.5rem;">
+        <span style="background:var(--danger);color:#fff;border-radius:50%;width:22px;height:22px;
+                     display:inline-flex;align-items:center;justify-content:center;font-size:.75rem;
+                     font-weight:700;">{{ propositions|length }}</span>
+        Ticket{{ 's' if propositions|length > 1 }} proposé{{ 's' if propositions|length > 1 }} automatiquement
+      </h2>
+      <p class="text-muted" style="font-size:.82rem;margin-top:.2rem;">
+        Ces tickets ont été sélectionnés pour vous selon votre spécialité et votre disponibilité.
+      </p>
+    </div>
+
+    {% for p in propositions %}
+    <div class="proposition-card">
+      <div class="prop-header"> 
+        <div>
+       
+          <strong>Ticket #{{ p.id_ticket }} — {{ p.titre }}</strong>
+          <div style="font-size:.78rem;color:rgba(255,255,255,.65);margin-top:.15rem;">
+            Demandeur : {{ p.createur }}
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:.5rem;">
+          <span class="badge badge-{{ p.priorite|lower }}">{{ p.priorite }}</span>
+          <span class="prop-badge">Proposé</span>
+        </div>
+      </div>
+      <div class="prop-body">
+        <div style="font-size:.875rem;">
+          <span class="text-muted" style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">Catégorie</span><br>
+          {{ p.categorie }}
+        </div>
+        <div class="prop-actions">
+          <form method="POST" action="{{ url_for('technicien.accepter_proposition', tid=p.id_ticket) }}">
+            <button type="submit" class="btn btn-success"
+                    data-confirm="Accepter et prendre en charge le ticket #{{ p.id_ticket }} ?">
+              ✓ Accepter
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('technicien.refuser_proposition', tid=p.id_ticket) }}">
+            <button type="submit" class="btn btn-outline"
+                    data-confirm="Refuser ce ticket ? Il sera proposé à un autre technicien.">
+              ✗ Refuser
+            </button>
+          </form>
+          <a href="{{ url_for('technicien.detail_ticket', tid=p.id_ticket) }}"
+             class="btn btn-sm btn-outline-gold">Voir détails</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Grille mes tickets / disponibles -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:stretch;">
+
+    <div class="card">
+      <div class="card-header">
+        Mes tickets en cours
+        <a href="{{ url_for('technicien.mes_tickets') }}"
+           class="btn btn-sm btn-outline-tout" style="color:#fff;border-color:rgba(255,255,255,.35);">
+          Voir tout
+        </a>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if mes_tickets %}
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>#</th><th>Titre</th><th>Priorité</th><th></th></tr></thead>
+            <tbody>
+              {% for t in mes_tickets %}
+              <tr>
+                <td class="text-muted">{{ t.id_ticket }}</td>
+                <td><strong>{{ t.titre }}</strong></td>
+                <td><span class="badge badge-{{ t.priorite|lower }}">{{ t.priorite }}</span></td>
+                <td>
+                  <a href="{{ url_for('technicien.detail_ticket', tid=t.id_ticket) }}"
+                     class="btn btn-sm btn-outline-voir">Voir</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>Aucun ticket en cours.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        Tickets disponibles
+        <a href="{{ url_for('technicien.tickets_disponibles') }}"
+           class="btn btn-sm btn-outline-tout" style="color:#fff;border-color:rgba(255,255,255,.35);">
+          Voir tout
+        </a>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% if disponibles %}
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Titre</th><th>Priorité</th><th>Catégorie</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for t in disponibles %}
+              <tr>
+                <td class="text-muted">{{ t.id_ticket }}</td>
+                <td>{{ t.titre }}</td>
+                <td><span class="badge badge-{{ t.priorite|lower }}">{{ t.priorite }}</span></td>
+                <td>{{ t.categorie }}</td>
+                <td>
+                  <a href="{{ url_for('technicien.detail_ticket', tid=t.id_ticket) }}"
+                     class="btn btn-sm btn-outline-voir">Voir</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <p>Aucun ticket disponible.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
