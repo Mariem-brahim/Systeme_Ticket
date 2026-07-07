@@ -9,7 +9,7 @@ from werkzeug.security import check_password_hash
 from app.auth import bp
 import db as database
 
-OTP_MAX_TENTATIVES = 5
+OTP_MAX_TENTATIVES = 3
 
 
 def _generate_otp():
